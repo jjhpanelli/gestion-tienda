@@ -6,8 +6,7 @@ import requests
 from datetime import datetime
 
 # Configuración de tus credenciales
-AIRTABLE_TOKEN = "patkQeolTgZICdPkp.555b4fbda73bfaf10a9e9f41c3288703e6141d5370697cc27663dc52fc7914aa"
-
+AIRTABLE_TOKEN = "Pega_aquí_tu_token_de_Airtable"
 BASE_ID = "appkZ19FSlbQduoOp"
 TABLE_CLIENTES = "Clientes"
 TABLE_CATEGORIAS = "Categorias"
@@ -26,8 +25,8 @@ def obtener_categorias():
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             registros = response.json().get("records", [])
-            # Guardamos el ID de Airtable junto al nombre para poder borrarlas luego
-            lista = [{"id": r["id"], "nombre": r["fields"].get("nombre")} for r in registros if r["fields"].get("nombre")]
+            # Lee perfectamente la columna 'Name' de tu Airtable
+            lista = [{"id": r["id"], "nombre": r["fields"].get("Name")} for r in registros if r["fields"].get("Name")]
             return lista
         return []
     except:
@@ -36,7 +35,7 @@ def obtener_categorias():
 def añadir_categoria_airtable(nombre_cat):
     url = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_CATEGORIAS}"
     headers = {"Authorization": f"Bearer {AIRTABLE_TOKEN}", "Content-Type": "application/json"}
-    data = {"records": [{"fields": {"nombre": nombre_cat}}]}
+    data = {"records": [{"fields": {"Name": nombre_cat}}]}
     try:
         res = requests.post(url, headers=headers, json=data)
         return res.status_code == 200
@@ -72,11 +71,10 @@ if clave == "1234":
 if st.session_state.autenticado:
     st.success("Acceso concedido")
     
-    # Traer categorías vivas
+    # ¡Corregido aquí para que no de error de nombre!
     categorias_data = obtener_categorias()
-    nombres_categorias = [c["nombre"] for c in categories_data] if categorias_data else ["General"]
+    nombres_categorias = [c["nombre"] for c in categorias_data] if categorias_data else ["General"]
     
-    # Tres pestañas: Ventas, Clientes y la gestión de Categorías
     pestana_ventas, pestana_clientes, pestana_cats = st.tabs(["💰 Crear Venta", "👤 Registrar Clienta", "⚙️ Ajustes Categorías"])
     
     # --- PESTAÑA 1: CREAR VENTA ---
@@ -84,7 +82,7 @@ if st.session_state.autenticado:
         st.subheader("Nueva Venta / Ticket de WhatsApp")
         prenda = st.selectbox("Selecciona el tipo de prenda:", nombres_categorias)
         precio = st.number_input("Precio de la prenda (€):", min_value=0.0, step=0.5)
-        detalles = st.text_area("Notas o detalles de la prenda (opcional):")
+        detalles = st.text_area("Notes o detalles de la prenda (opcional):")
         
         if st.button("Generar Ticket para WhatsApp"):
             if precio > 0:
@@ -118,11 +116,10 @@ if st.session_state.autenticado:
                 else:
                     st.warning("Por favor, rellena ambos campos.")
 
-    # --- PESTAÑA 3: GESTIONAR CATEGORÍAS (¡TUS BOTONES!) ---
+    # --- PESTAÑA 3: GESTIONAR CATEGORÍAS ---
     with pestana_cats:
         st.subheader("Gestionar Categorías de la Tienda")
         
-        # Formulario para añadir nueva
         with st.form("add_cat", clear_on_submit=True):
             nueva_cat = st.text_input("Añadir nueva categoría (ej: Blusas):")
             if st.form_submit_button("➕ Añadir Categoría"):
@@ -135,11 +132,9 @@ if st.session_state.autenticado:
         
         st.write("---")
         
-        # Formulario para borrar existente
         if categorias_data:
             cat_a_borrar = st.selectbox("Selecciona la categoría que deseas eliminar:", nombres_categorias)
             if st.button("❌ Eliminar Categoría Seleccionada"):
-                # Buscamos el ID interno de esa categoría para borrarla de Airtable
                 id_airtable = next((c["id"] for c in categorias_data if c["nombre"] == cat_a_borrar), None)
                 if id_airtable:
                     if borrar_categoria_airtable(id_airtable):
