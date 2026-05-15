@@ -6,8 +6,7 @@ import requests
 from datetime import datetime
 
 # Configuración de tus credenciales
-AIRTABLE_TOKEN = "patkQeolTgZICdPkp.555b4fbda73bfaf10a9e9f41c3288703e6141d5370697cc27663dc52fc7914aa"
-
+AIRTABLE_TOKEN = "Pega_aquí_tu_token_de_Airtable"
 BASE_ID = "appkZ19FSlbQduoOp"
 TABLE_CLIENTES = "Clientes"
 TABLE_CATEGORIAS = "Categorias"
@@ -132,7 +131,7 @@ if st.session_state.autenticado:
                 st.session_state.carrito.append({
                     "prenda": prenda_actual,
                     "precio": precio_actual,
-                    "detalles": details_actual if 'details_actual' in locals() else detalles_actual
+                    "detalles": detalles_actual
                 })
                 st.success(f"¡Añadido: {prenda_actual} por {precio_actual:.2f}€!")
             else:
@@ -161,36 +160,30 @@ if st.session_state.autenticado:
             if st.button("🎁 Generar Ticket Completo para WhatsApp"):
                 fecha_actual = datetime.now().strftime("%d/%m/%Y")
                 
-                # Formateamos el mensaje de forma segura para evitar fallos de codificación
-                lineas_mensaje = [
-                    "⭐ *ELOÍSA NELEB MODAS* ⭐",
-                    "✨ _Estilo y versatilidad para ti_ ✨",
-                    "",
-                    f"📅 *Fecha:* {fecha_actual}",
-                    f"👤 *Clienta:* {nombre_clienta_texto}",
-                    "",
-                    "🔹──────────────────🔹",
-                    "🛍️ *DETALLE DE TU COMPRA:*",
-                    ""
-                ]
+                # Montamos el mensaje de texto limpio con los emojis normales
+                mensaje_completo = (
+                    f"⭐ *ELOÍSA NELEB MODAS* ⭐\n"
+                    f"✨ _Estilo y versatilidad para ti_ ✨\n\n"
+                    f"📅 *Fecha:* {fecha_actual}\n"
+                    f"👤 *Clienta:* {nombre_clienta_texto}\n\n"
+                    f"🔹──────────────────🔹\n"
+                    f"🛍️ *DETALLE DE TU COMPRA:*\n\n"
+                )
                 
                 for item in st.session_state.carrito:
-                    linea_item = f"▪️ *{item['prenda']}*"
+                    mensaje_completo += f"▪️ *{item['prenda']}*"
                     if item['detalles']:
-                        linea_item += f" _{item['detalles']}_"
-                    linea_item += f"  ➔  *{item['precio']:.2f}€*"
-                    lineas_mensaje.append(linea_item)
+                        mensaje_completo += f" _{item['detalles']}_"
+                    mensaje_completo += f"  ➔  *{item['precio']:.2f}€*\n"
                     
-                lineas_mensaje.extend([
-                    "🔹──────────────────🔹",
-                    "",
-                    f"💰 *TOTAL NETO:* {total_suma:.2f}€",
-                    "",
+                mensaje_completo += (
+                    f"🔹──────────────────🔹\n\n"
+                    f"💰 *TOTAL NETO:* {total_suma:.2f}€\n\n"
                     f"💖 ¡Muchas gracias por tu confianza, {nombre_clienta_texto}! Esperamos que disfrutes muchísimo de tus prendas. ¡Vuelve pronto! 🛍️✨"
-                ])
+                )
                 
-                mensaje_completo = "\n".join(lineas_mensaje)
-                texto_url = urllib.parse.quote_plus(mensaje_completo)
+                # Codificación estándar compatible al 100% con WhatsApp Web
+                texto_url = urllib.parse.quote(mensaje_completo)
                 
                 if telefono_destino:
                     if not telefono_destino.startswith("34") and len(telefono_destino) == 9:
