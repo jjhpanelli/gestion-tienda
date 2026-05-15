@@ -6,8 +6,7 @@ import requests
 from datetime import datetime
 
 # Configuración de tus credenciales
-AIRTABLE_TOKEN = "patkQeolTgZICdPkp.555b4fbda73bfaf10a9e9f41c3288703e6141d5370697cc27663dc52fc7914aa"
-
+AIRTABLE_TOKEN = "Pega_aquí_tu_token_de_Airtable"
 BASE_ID = "appkZ19FSlbQduoOp"
 TABLE_CLIENTES = "Clientes"
 TABLE_CATEGORIAS = "Categorias"
@@ -18,7 +17,7 @@ st.set_page_config(page_title="Gestión Eloísa Neleb", page_icon="🛍️", lay
 if 'autenticado' not in st.session_state:
     st.session_state.autenticado = False
 
-# Inicializar el carrito de la compra en la sesión para que no se borre al recargar
+# Inicializar el carrito de la compra en la sesión
 if 'carrito' not in st.session_state:
     st.session_state.carrito = []
 
@@ -90,16 +89,16 @@ if st.session_state.autenticado:
     
     # Cargar datos vivos
     categorias_data = obtener_categorias()
-    nombres_categorias = [c["nombre"] for c in categorias_data] if categorias_data else ["General"]
+    nombres_categorias = [c["nombre"] for c in categories_data] if categories_data else ["General"]
     clientes_data = obtener_clientes_airtable()
     
     pestana_ventas, pestana_clientes, pestana_cats = st.tabs(["💰 Crear Venta", "👤 Registrar Clienta", "⚙️ Ajustes Categorías"])
     
-    # --- PESTAÑA 1: CREAR VENTA (CON CARRITO MULTI-PRENDA) ---
+    # --- PESTAÑA 1: CREAR VENTA ---
     with pestana_ventas:
         st.subheader("Nueva Venta / Ticket de WhatsApp")
         
-        # 1. Selección de Clienta
+        nombre_clienta_texto = "Clienta"
         if clientes_data:
             opciones_clientes = [f"{c['nombre']} ({c['telefono']})" for c in clientes_data]
             opciones_clientes.insert(0, "Clienta no registrada (Sin número)")
@@ -108,6 +107,7 @@ if st.session_state.autenticado:
             if clienta_seleccionada != "Clienta no registrada (Sin número)":
                 indice = opciones_clientes.index(clienta_seleccionada) - 1
                 telefono_destino = clientes_data[indice]["telefono"]
+                nombre_clienta_texto = list(clientes_data[indice]["nombre"].split())[0]  # Sacamos el primer nombre
                 telefono_destino = "".join(filter(str.isdigit, str(telefono_destino)))
             else:
                 telefono_destino = ""
@@ -117,7 +117,6 @@ if st.session_state.autenticado:
             
         st.write("---")
         
-        # 2. Añadir prendas a la lista actual
         st.write("**Añadir prendas al ticket actual:**")
         col1, col2 = st.columns([2, 1])
         with col1:
@@ -129,7 +128,6 @@ if st.session_state.autenticado:
         
         if st.button("➕ Añadir esta prenda al Ticket"):
             if precio_actual > 0:
-                # Metemos la prenda en la lista de la sesión
                 st.session_state.carrito.append({
                     "prenda": prenda_actual,
                     "precio": precio_actual,
@@ -141,9 +139,8 @@ if st.session_state.autenticado:
         
         st.write("---")
         
-        # 3. Mostrar lo que va sumado en el ticket
         if st.session_state.carrito:
-            st.write("**Resumen de lo que lleva sumado:**")
+            st.write("**Resumen de lo que va sumado:**")
             total_suma = 0.0
             for i, item in enumerate(st.session_state.carrito):
                 texto_item = f"• {item['prenda']} - {item['precio']:.2f}€"
@@ -154,30 +151,32 @@ if st.session_state.autenticado:
             
             st.markdown(f"### **Total Actual: {total_suma:.2f}€**")
             
-            # Botón para vaciar si te equivocas
             if st.button("🗑️ Vaciar Ticket"):
                 st.session_state.carrito = []
                 st.rerun()
                 
             st.write("---")
             
-            # 4. Botón para generar el mensaje completo de WhatsApp
             if st.button("🎁 Generar Ticket Completo para WhatsApp"):
                 fecha_actual = datetime.now().strftime("%d/%m/%Y")
                 
-                # Cabecera del mensaje
-                mensaje = f" *Eloísa Neleb Modas* 🛍️\n\n¡Gracias por tu compra! \n📅 Fecha: {fecha_actual}\n\n"
-                mensaje += "*Detalle de tu compra:*\n"
+                # --- NUEVO DISEÑO PERSONALIZADO Y ELEGANTE ---
+                mensaje = f"🌟 *ELOÍSA NELEB MODAS* 🌟\n" \
+                          f"✨ _Estilo y versatilidad para ti_ ✨\n\n" \
+                          f"📅 *Fecha:* {fecha_actual}\n" \
+                          f"👤 *Clienta:* {nombre_clienta_texto}\n\n" \
+                          f"🔹──────────────────🔹\n" \
+                          f"🛍️ *DETALLE DE TU COMPRA:*\n\n"
                 
-                # Desglose de cada una de las prendas guardadas
                 for item in st.session_state.carrito:
-                    mensaje += f"👗 {item['prenda']}: {item['precio']:.2f}€"
+                    mensaje += f"▪️ *{item['prenda']}*"
                     if item['detalles']:
-                        mensaje += f" ({item['detalles']})"
-                    mensaje += "\n"
+                        mensaje += f" _{item['detalles']}_"
+                    mensaje += f"  ➔  *{item['precio']:.2f}€*\n"
                     
-                # Cierre con el total sumado solo
-                mensaje += f"\n💰 *Total: {total_suma:.2f}€*\n\n¡Esperamos que lo disfrutes! "
+                mensaje += f"🔹──────────────────🔹\n\n" \
+                          f"💰 *TOTAL NETO:* {total_suma:.2f}€\n\n" \
+                          f"💖 ¡Muchas gracias por tu confianza, {nombre_clienta_texto}! Esperamos que disfrutes muchísimo de tus prendas. ¡Vuelve pronto! 🛍️✨"
                 
                 texto_url = urllib.parse.quote(mensaje)
                 
@@ -188,13 +187,12 @@ if st.session_state.autenticado:
                 else:
                     enlace_wa = f"https://wa.me/?text={texto_url}"
                     
-                st.info("Ticket multibolsa generado con éxito:")
-                st.markdown(f'[📲 Enviar Ticket Completo por WhatsApp]({enlace_wa})')
+                st.info("Ticket personalizado generado con éxito:")
+                st.markdown(f'[📲 Enviar Ticket por WhatsApp]({enlace_wa})')
                 
-                # Vaciamos el carrito automáticamente tras generar el ticket para la siguiente venta
                 st.session_state.carrito = []
         else:
-            st.info("El ticket está vacío. Añade alguna prenda arriba para empezar a sumar.")
+            st.info("El ticket está vacío. Añade alguna prenda arriba.")
 
     # --- PESTAÑA 2: REGISTRAR CLIENTA ---
     with pestana_clientes:
