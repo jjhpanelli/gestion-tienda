@@ -2,6 +2,11 @@ import streamlit as st
 import json
 import os
 import urllib.parse
+AIRTABLE_TOKEN = "patkQeolTgZICdPkp.555b4fbda73bfaf10a9e9f41c3288703e6141d5370697cc27663dc52fc7914aa
+"
+BASE_ID = "appZ19FSlbQduoOp"
+TABLE_NAME = "Clientes"
+
 
 # Configuración de la página
 st.set_page_config(page_title="Gestión Eloísa Neleb", page_icon="🛍️", layout="centered")
