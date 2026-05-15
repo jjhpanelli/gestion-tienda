@@ -6,8 +6,7 @@ import requests
 from datetime import datetime
 
 # Configuración de tus credenciales
-AIRTABLE_TOKEN = "patkQeolTgZICdPkp.555b4fbda73bfaf10a9e9f41c3288703e6141d5370697cc27663dc52fc7914aa"
-
+AIRTABLE_TOKEN = "Pega_aquí_tu_token_de_Airtable"
 BASE_ID = "appkZ19FSlbQduoOp"
 TABLE_CLIENTES = "Clientes"
 TABLE_CATEGORIAS = "Categorias"
@@ -26,7 +25,6 @@ def obtener_categorias():
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             registros = response.json().get("records", [])
-            # Lee la columna 'Name' tal y como está en tu Airtable
             lista = [{"id": r["id"], "nombre": r["fields"].get("Name")} for r in registros if r["fields"].get("Name")]
             return lista
         return []
@@ -52,6 +50,20 @@ def borrar_categoria_airtable(record_id):
     except:
         return False
 
+def obtener_clientes_airtable():
+    url = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_CLIENTES}"
+    headers = {"Authorization": f"Bearer {AIRTABLE_TOKEN}"}
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            registros = response.json().get("records", [])
+            # Traemos el nombre y el teléfono de cada clienta
+            lista = [{"nombre": r["fields"].get("nombre"), "telefono": r["fields"].get("telefono")} for r in registros if r["fields"].get("nombre")]
+            return lista
+        return []
+    except:
+        return []
+
 def guardar_cliente_airtable(nombre, telefono):
     url = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_CLIENTES}"
     headers = {"Authorization": f"Bearer {AIRTABLE_TOKEN}", "Content-Type": "application/json"}
@@ -72,15 +84,39 @@ if clave == "1234":
 if st.session_state.autenticado:
     st.success("Acceso concedido")
     
-    # Lista limpia de categorías
+    # Traer categorías y clientas vivas desde Airtable
     categorias_data = obtener_categorias()
     nombres_categorias = [c["nombre"] for c in categorias_data] if categorias_data else ["General"]
     
+    clientes_data = obtener_clientes_airtable()
+    
     pestana_ventas, pestana_clientes, pestana_cats = st.tabs(["💰 Crear Venta", "👤 Registrar Clienta", "⚙️ Ajustes Categorías"])
     
-    # --- PESTAÑA 1: CREAR VENTA ---
+    # --- PESTAÑA 1: CREAR VENTA (CON BUSCADOR DE CLIENTAS) ---
     with pestana_ventas:
         st.subheader("Nueva Venta / Ticket de WhatsApp")
+        
+        # Sistema para buscar y elegir a la clienta
+        if clientes_data:
+            opciones_clientes = [f"{c['nombre']} ({c['telefono']})" for c in clientes_data]
+            # Añadimos una opción por si es una venta rápida a alguien no registrado
+            opciones_clientes.insert(0, "Clienta no registrada (Sin número)")
+            
+            clienta_seleccionada = st.selectbox("Buscar y seleccionar clienta:", opciones_clientes)
+            
+            # Sacamos el teléfono limpio si se selecciona una de la lista
+            if clienta_seleccionada != "Clienta no registrada (Sin número)":
+                indice = opciones_clientes.index(clienta_seleccionada) - 1
+                telefono_destino = clientes_data[indice]["telefono"]
+                # Limpiar espacios o caracteres raros del teléfono por seguridad
+                telefono_destino = "".join(filter(str.isdigit, str(telefono_destino)))
+            else:
+                telefono_destino = ""
+        else:
+            st.info("Aún no tienes clientas en Airtable. Registra una en su pestaña.")
+            telefono_destino = ""
+            
+        st.write("---")
         prenda = st.selectbox("Selecciona el tipo de prenda:", nombres_categorias)
         precio = st.number_input("Precio de la prenda (€):", min_value=0.0, step=0.5)
         detalles = st.text_area("Notas o detalles de la prenda (opcional):")
@@ -94,7 +130,17 @@ if st.session_state.autenticado:
                 mensaje += f"\n¡Esperamos que lo disfrutes! "
                 
                 texto_url = urllib.parse.quote(mensaje)
-                enlace_wa = f"https://wa.me/?text={texto_url}"
+                
+                # Si tenemos teléfono, el enlace va DIRECTO a su chat privado
+                if telefono_destino:
+                    # Nos aseguramos de que lleve el prefijo de España (34) si no lo tiene puesto
+                    if not telefono_destino.startswith("34") and len(telefono_destino) == 9:
+                        telefono_destino = "34" + telefono_destino
+                    enlace_wa = f"https://wa.me/{telefono_destino}?text={texto_url}"
+                else:
+                    # Si no hay teléfono, se abre el listín general como antes
+                    enlace_wa = f"https://wa.me/?text={texto_url}"
+                    
                 st.info("Ticket generado con éxito:")
                 st.markdown(f'[📲 Enviar Ticket por WhatsApp]({enlace_wa})')
             else:
@@ -112,6 +158,7 @@ if st.session_state.autenticado:
                 if nuevo_nombre and nuevo_telefono:
                     if guardar_cliente_airtable(nuevo_nombre, nuevo_telefono):
                         st.success(f"¡{nuevo_nombre} se ha guardado correctamente!")
+                        st.rerun()
                     else:
                         st.error("Error al guardar cliente.")
                 else:
