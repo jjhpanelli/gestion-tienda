@@ -70,7 +70,7 @@ else:
                     total = sum(precios_venta.values())
                     
                     # Construcción del texto del ticket
-                    texto_ticket = f"*GD ELOÍSA NELEB MODAS*\n"
+                    texto_ticket = f"*ELOÍSA NELEB MODAS*\n"
                     texto_ticket += f"-----------------------------------\n"
                     texto_ticket += f"🔸 Cliente: {cliente_sel.title()}\n"
                     texto_ticket += f"-----------------------------------\n"
