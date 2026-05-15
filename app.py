@@ -4,8 +4,8 @@ import os
 import urllib.parse
 import requests
 
-AIRTABLE_TOKEN = "patkQeolTgZICdPkp.555b4fbda73bfaf10a9e9f41c3288703e6141d5370697cc27663dc52fc7914aa
-"
+AIRTABLE_TOKEN = "patkQeolTgZICdPkp.555b4fbda73bfaf10a9e9f41c3288703e6141d5370697cc27663dc52fc7914aa"
+
 BASE_ID = "appZ19FSlbQduoOp"
 TABLE_NAME = "Clientes"
 
