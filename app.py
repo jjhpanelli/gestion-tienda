@@ -6,7 +6,8 @@ import requests
 from datetime import datetime
 
 # Configuración de tus credenciales
-AIRTABLE_TOKEN = "Pega_aquí_tu_token_de_Airtable"
+AIRTABLE_TOKEN = "patkQeolTgZICdPkp.555b4fbda73bfaf10a9e9f41c3288703e6141d5370697cc27663dc52fc7914aa
+"
 BASE_ID = "appkZ19FSlbQduoOp"
 TABLE_CLIENTES = "Clientes"
 TABLE_CATEGORIAS = "Categorias"
@@ -25,7 +26,7 @@ def obtener_categorias():
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             registros = response.json().get("records", [])
-            # Lee perfectamente la columna 'Name' de tu Airtable
+            # Lee la columna 'Name' tal y como está en tu Airtable
             lista = [{"id": r["id"], "nombre": r["fields"].get("Name")} for r in registros if r["fields"].get("Name")]
             return lista
         return []
@@ -71,7 +72,7 @@ if clave == "1234":
 if st.session_state.autenticado:
     st.success("Acceso concedido")
     
-    # ¡Corregido aquí para que no de error de nombre!
+    # Lista limpia de categorías
     categorias_data = obtener_categorias()
     nombres_categorias = [c["nombre"] for c in categorias_data] if categorias_data else ["General"]
     
@@ -82,7 +83,7 @@ if st.session_state.autenticado:
         st.subheader("Nueva Venta / Ticket de WhatsApp")
         prenda = st.selectbox("Selecciona el tipo de prenda:", nombres_categorias)
         precio = st.number_input("Precio de la prenda (€):", min_value=0.0, step=0.5)
-        detalles = st.text_area("Notes o detalles de la prenda (opcional):")
+        detalles = st.text_area("Notas o detalles de la prenda (opcional):")
         
         if st.button("Generar Ticket para WhatsApp"):
             if precio > 0:
