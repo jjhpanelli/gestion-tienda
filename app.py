@@ -6,8 +6,7 @@ import requests
 from datetime import datetime
 
 # Configuración de tus credenciales
-AIRTABLE_TOKEN = "patkQeolTgZICdPkp.555b4fbda73bfaf10a9e9f41c3288703e6141d5370697cc27663dc52fc7914aa"
-
+AIRTABLE_TOKEN = "Pega_aquí_tu_token_de_Airtable"
 BASE_ID = "appkZ19FSlbQduoOp"
 TABLE_CLIENTES = "Clientes"
 TABLE_CATEGORIAS = "Categorias"
@@ -88,9 +87,9 @@ if clave == "1234":
 if st.session_state.autenticado:
     st.success("Acceso concedido")
     
-    # Cargar datos vivos
+    # Cargar datos vivos (Corregido el cruce de nombres)
     categorias_data = obtener_categorias()
-    nombres_categorias = [c["nombre"] for c in categories_data] if categories_data else ["General"]
+    nombres_categorias = [c["nombre"] for c in categorias_data] if categorias_data else ["General"]
     clientes_data = obtener_clientes_airtable()
     
     pestana_ventas, pestana_clientes, pestana_cats = st.tabs(["💰 Crear Venta", "👤 Registrar Clienta", "⚙️ Ajustes Categorías"])
@@ -162,7 +161,7 @@ if st.session_state.autenticado:
                 fecha_actual = datetime.now().strftime("%d/%m/%Y")
                 
                 # --- NUEVO DISEÑO PERSONALIZADO Y ELEGANTE ---
-                mensaje = f"🌟 *ELOÍSA NELEB MODAS* 🌟\n" \
+                mensaje = f"🌟 *\u200eELOÍSA NELEB MODAS\u200e* 🌟\n" \
                           f"✨ _Estilo y versatilidad para ti_ ✨\n\n" \
                           f"📅 *Fecha:* {fecha_actual}\n" \
                           f"👤 *Clienta:* {nombre_clienta_texto}\n\n" \
@@ -195,7 +194,7 @@ if st.session_state.autenticado:
         else:
             st.info("El ticket está vacío. Añade alguna prenda arriba.")
 
-    # --- PESTAÑA 2: REGISTRAR CLIENTA ---
+# --- PESTAÑA 2: REGISTRAR CLIENTA ---
     with pestana_clientes:
         st.subheader("Registrar Nueva Clienta en Airtable")
         with st.form("nuevo_cliente", clear_on_submit=True):
@@ -213,7 +212,7 @@ if st.session_state.autenticado:
                 else:
                     st.warning("Por favor, rellena ambos campos.")
 
-    # --- PESTAÑA 3: GESTIONAR CATEGORÍAS ---
+# --- PESTAÑA 3: GESTIONAR CATEGORÍAS ---
     with pestana_cats:
         st.subheader("Gestionar Categorías de la Tienda")
         with st.form("add_cat", clear_on_submit=True):
