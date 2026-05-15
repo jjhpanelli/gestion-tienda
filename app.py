@@ -6,8 +6,7 @@ import requests
 from datetime import datetime
 
 # Configuración de tus credenciales
-AIRTABLE_TOKEN = "patkQeolTgZICdPkp.555b4fbda73bfaf10a9e9f41c3288703e6141d5370697cc27663dc52fc7914aa"
-
+AIRTABLE_TOKEN = "Pega_aquí_tu_token_de_Airtable"
 BASE_ID = "appkZ19FSlbQduoOp"
 TABLE_CLIENTES = "Clientes"
 TABLE_CATEGORIAS = "Categorias"
@@ -88,7 +87,7 @@ if clave == "1234":
 if st.session_state.autenticado:
     st.success("Acceso concedido")
     
-    # Cargar datos vivos (Corregido el cruce de nombres)
+    # Cargar datos vivos
     categorias_data = obtener_categorias()
     nombres_categorias = [c["nombre"] for c in categorias_data] if categorias_data else ["General"]
     clientes_data = obtener_clientes_airtable()
@@ -108,7 +107,7 @@ if st.session_state.autenticado:
             if clienta_seleccionada != "Clienta no registrada (Sin número)":
                 indice = opciones_clientes.index(clienta_seleccionada) - 1
                 telefono_destino = clientes_data[indice]["telefono"]
-                nombre_clienta_texto = list(clientes_data[indice]["nombre"].split())[0]  # Sacamos el primer nombre
+                nombre_clienta_texto = list(clientes_data[indice]["nombre"].split())[0]
                 telefono_destino = "".join(filter(str.isdigit, str(telefono_destino)))
             else:
                 telefono_destino = ""
@@ -161,23 +160,34 @@ if st.session_state.autenticado:
             if st.button("🎁 Generar Ticket Completo para WhatsApp"):
                 fecha_actual = datetime.now().strftime("%d/%m/%Y")
                 
-                # --- NUEVO DISEÑO PERSONALIZADO Y ELEGANTE ---
-                mensaje = f"🌟 *\u200eELOÍSA NELEB MODAS\u200e* 🌟\n" \
-                          f"✨ _Estilo y versatilidad para ti_ ✨\n\n" \
-                          f"📅 *Fecha:* {fecha_actual}\n" \
-                          f"👤 *Clienta:* {nombre_clienta_texto}\n\n" \
-                          f"🔹──────────────────🔹\n" \
-                          f"🛍️ *DETALLE DE TU COMPRA:*\n\n"
+                # Usamos códigos a prueba de fallos para los emojis de WhatsApp
+                icono_estrella = "\u2B50"  # ⭐
+                icono_destello = "\u2728"  # ✨
+                icono_calendario = "\ud83d\udcc5"  # 📅
+                icono_usuario = "\ud83d\udc64"  # 👤
+                icono_rombo = "\ud83d\udd39"  # 🔹
+                icono_bolsa = "\ud83d\udecd"  # 🛍️
+                icono_cuadrado = "\u25AA\uFE0F"  # ▪️
+                icono_dinero = "\ud83d\udcb0"  # 💰
+                icono_corazon = "\ud83d\udc96"  # 💖
+                
+                # --- MONTAJE DEL MENSAJE BLINDADO ---
+                mensaje = f"{icono_estrella} *ELOÍSA NELEB MODAS* {icono_estrella}\n" \
+                          f"{icono_destello} _Estilo y versatilidad para ti_ __{icono_destello}\n\n" \
+                          f"{icono_calendario} *Fecha:* {fecha_actual}\n" \
+                          f"{icono_usuario} *Clienta:* {nombre_clienta_texto}\n\n" \
+                          f"{icono_rombo}──────────────────{icono_rombo}\n" \
+                          f"{icono_bolsa} *DETALLE DE TU COMPRA:*\n\n"
                 
                 for item in st.session_state.carrito:
-                    mensaje += f"▪️ *{item['prenda']}*"
+                    mensaje += f"{icono_cuadrado} *{item['prenda']}*"
                     if item['detalles']:
                         mensaje += f" _{item['detalles']}_"
                     mensaje += f"  ➔  *{item['precio']:.2f}€*\n"
                     
-                mensaje += f"🔹──────────────────🔹\n\n" \
-                          f"💰 *TOTAL NETO:* {total_suma:.2f}€\n\n" \
-                          f"💖 ¡Muchas gracias por tu confianza, {nombre_clienta_texto}! Esperamos que disfrutes muchísimo de tus prendas. ¡Vuelve pronto! 🛍️✨"
+                mensaje += f"{icono_rombo}──────────────────{icono_rombo}\n\n" \
+                          f"{icono_dinero} *TOTAL NETO:* {total_suma:.2f}€\n\n" \
+                          f"{icono_corazon} ¡Muchas gracias por tu confianza, {nombre_clienta_texto}! Esperamos que disfrutes muchísimo de tus prendas. ¡Vuelve pronto! {icono_bolsa}{icono_destello}"
                 
                 texto_url = urllib.parse.quote(mensaje)
                 
@@ -195,7 +205,7 @@ if st.session_state.autenticado:
         else:
             st.info("El ticket está vacío. Añade alguna prenda arriba.")
 
-# --- PESTAÑA 2: REGISTRAR CLIENTA ---
+    # --- PESTAÑA 2: REGISTRAR CLIENTA ---
     with pestana_clientes:
         st.subheader("Registrar Nueva Clienta en Airtable")
         with st.form("nuevo_cliente", clear_on_submit=True):
@@ -213,7 +223,7 @@ if st.session_state.autenticado:
                 else:
                     st.warning("Por favor, rellena ambos campos.")
 
-# --- PESTAÑA 3: GESTIONAR CATEGORÍAS ---
+    # --- PESTAÑA 3: GESTIONAR CATEGORÍAS ---
     with pestana_cats:
         st.subheader("Gestionar Categorías de la Tienda")
         with st.form("add_cat", clear_on_submit=True):
