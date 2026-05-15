@@ -6,8 +6,7 @@ import requests
 from datetime import datetime
 
 # Configuración de tus credenciales
-AIRTABLE_TOKEN = "patkQeolTgZICdPkp.555b4fbda73bfaf10a9e9f41c3288703e6141d5370697cc27663dc52fc7914aa"
-
+AIRTABLE_TOKEN = "Pega_aquí_tu_token_de_Airtable"
 BASE_ID = "appkZ19FSlbQduoOp"
 TABLE_CLIENTES = "Clientes"
 TABLE_CATEGORIAS = "Categorias"
@@ -132,7 +131,7 @@ if st.session_state.autenticado:
                 st.session_state.carrito.append({
                     "prenda": prenda_actual,
                     "precio": precio_actual,
-                    "detalles": detalles_actual
+                    "detalles": details_actual if 'details_actual' in locals() else detalles_actual
                 })
                 st.success(f"¡Añadido: {prenda_actual} por {precio_actual:.2f}€!")
             else:
@@ -161,36 +160,36 @@ if st.session_state.autenticado:
             if st.button("🎁 Generar Ticket Completo para WhatsApp"):
                 fecha_actual = datetime.now().strftime("%d/%m/%Y")
                 
-                # Usamos códigos a prueba de fallos para los emojis de WhatsApp
-                icono_estrella = "\u2B50"  # ⭐
-                icono_destello = "\u2728"  # ✨
-                icono_calendario = "\ud83d\udcc5"  # 📅
-                icono_usuario = "\ud83d\udc64"  # 👤
-                icono_rombo = "\ud83d\udd39"  # 🔹
-                icono_bolsa = "\ud83d\udecd"  # 🛍️
-                icono_cuadrado = "\u25AA\uFE0F"  # ▪️
-                icono_dinero = "\ud83d\udcb0"  # 💰
-                icono_corazon = "\ud83d\udc96"  # 💖
-                
-                # --- MONTAJE DEL MENSAJE BLINDADO ---
-                mensaje = f"{icono_estrella} *ELOÍSA NELEB MODAS* {icono_estrella}\n" \
-                          f"{icono_destello} _Estilo y versatilidad para ti_ __{icono_destello}\n\n" \
-                          f"{icono_calendario} *Fecha:* {fecha_actual}\n" \
-                          f"{icono_usuario} *Clienta:* {nombre_clienta_texto}\n\n" \
-                          f"{icono_rombo}──────────────────{icono_rombo}\n" \
-                          f"{icono_bolsa} *DETALLE DE TU COMPRA:*\n\n"
+                # Formateamos el mensaje de forma segura para evitar fallos de codificación
+                lineas_mensaje = [
+                    "⭐ *ELOÍSA NELEB MODAS* ⭐",
+                    "✨ _Estilo y versatilidad para ti_ ✨",
+                    "",
+                    f"📅 *Fecha:* {fecha_actual}",
+                    f"👤 *Clienta:* {nombre_clienta_texto}",
+                    "",
+                    "🔹──────────────────🔹",
+                    "🛍️ *DETALLE DE TU COMPRA:*",
+                    ""
+                ]
                 
                 for item in st.session_state.carrito:
-                    mensaje += f"{icono_cuadrado} *{item['prenda']}*"
+                    linea_item = f"▪️ *{item['prenda']}*"
                     if item['detalles']:
-                        mensaje += f" _{item['detalles']}_"
-                    mensaje += f"  ➔  *{item['precio']:.2f}€*\n"
+                        linea_item += f" _{item['detalles']}_"
+                    linea_item += f"  ➔  *{item['precio']:.2f}€*"
+                    lineas_mensaje.append(linea_item)
                     
-                mensaje += f"{icono_rombo}──────────────────{icono_rombo}\n\n" \
-                          f"{icono_dinero} *TOTAL NETO:* {total_suma:.2f}€\n\n" \
-                          f"{icono_corazon} ¡Muchas gracias por tu confianza, {nombre_clienta_texto}! Esperamos que disfrutes muchísimo de tus prendas. ¡Vuelve pronto! {icono_bolsa}{icono_destello}"
+                lineas_mensaje.extend([
+                    "🔹──────────────────🔹",
+                    "",
+                    f"💰 *TOTAL NETO:* {total_suma:.2f}€",
+                    "",
+                    f"💖 ¡Muchas gracias por tu confianza, {nombre_clienta_texto}! Esperamos que disfrutes muchísimo de tus prendas. ¡Vuelve pronto! 🛍️✨"
+                ])
                 
-                texto_url = urllib.parse.quote(mensaje)
+                mensaje_completo = "\n".join(lineas_mensaje)
+                texto_url = urllib.parse.quote_plus(mensaje_completo)
                 
                 if telefono_destino:
                     if not telefono_destino.startswith("34") and len(telefono_destino) == 9:
