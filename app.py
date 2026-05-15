@@ -1,6 +1,7 @@
 import streamlit as st
 import json
 import os
+import urllib.parse
 
 # Configuración de la página
 st.set_page_config(page_title="Gestión Eloísa Neleb", page_icon="🛍️", layout="centered")
@@ -43,10 +44,17 @@ else:
             nombres_clientes = [c['nombre'] for c in st.session_state.clientes]
             cliente_sel = st.selectbox("Selecciona el Cliente:", nombres_clientes)
             
+            # Buscar el teléfono del cliente seleccionado
+            telefono_sel = ""
+            for c in st.session_state.clientes:
+                if c['nombre'] == cliente_sel:
+                    telefono_sel = c['telefono']
+                    break
+            
             st.write("---")
             st.subheader("Prendas de la venta:")
             
-            # Formulario dinámico simplificado para precios
+            # Formulario dinámico para precios
             precios_venta = {}
             for cat in st.session_state.categorias:
                 precio = st.number_input(f"Precio para {cat} (€):", min_value=0.0, value=0.0, step=0.5, key=f"venta_{cat}")
@@ -62,7 +70,7 @@ else:
                     total = sum(precios_venta.values())
                     
                     # Construcción del texto del ticket
-                    texto_ticket = f"*ELOÍSA NELEB MODAS*\n"
+                    texto_ticket = f"*GD ELOÍSA NELEB MODAS*\n"
                     texto_ticket += f"-----------------------------------\n"
                     texto_ticket += f"🔸 Cliente: {cliente_sel.title()}\n"
                     texto_ticket += f"-----------------------------------\n"
@@ -73,14 +81,26 @@ else:
                     texto_ticket += f"-----------------------------------\n"
                     texto_ticket += f"¡Gracias por tu compra! ✨"
                     
-                    # Guardar en sesión para mostrarlo
                     st.session_state.ticket_generado = texto_ticket
+                    st.session_state.tel_ticket = telefono_sel
             
-            # Mostrar ticket si existe
+            # Mostrar ticket y botón de enviar si existe
             if 'ticket_generado' in st.session_state:
                 st.subheader("Ticket listo:")
                 st.text_area("", value=st.session_state.ticket_generado, height=250)
-                st.info("Copia el texto de arriba y pégalo en el WhatsApp de tu cliente.")
+                
+                # Crear enlace de WhatsApp web / app
+                texto_url = urllib.parse.quote(st.session_state.ticket_generado)
+                tel_envio = st.session_state.tel_ticket
+                
+                # Si hay teléfono, se genera el botón directo a su chat
+                if tel_envio:
+                    url_wa = f"https://wa.me/{tel_envio}?text={texto_url}"
+                    st.markdown(f'<a href="{url_wa}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366;color:white;border:none;padding:10px 20px;border-radius:5px;cursor:pointer;font-weight:bold;width:100%;">💬 Enviar directo por WhatsApp</button></a>', unsafe_allow_html=True)
+                else:
+                    # Si no tiene teléfono guardado, abre WhatsApp para elegir contacto
+                    url_wa_sin = f"https://wa.me/?text={texto_url}"
+                    st.markdown(f'<a href="{url_wa_sin}" target="_blank" style="text-decoration:none;"><button style="background-color:#007bff;color:white;border:none;padding:10px 20px;border-radius:5px;cursor:pointer;font-weight:bold;width:100%;">📲 Compartir en WhatsApp (Elegir Contacto)</button></a>', unsafe_allow_html=True)
 
     # 2. REGISTRAR CLIENTES
     elif opcion == "Registrar Clientes":
@@ -90,16 +110,21 @@ else:
         with st.form("nuevo_cliente"):
             st.subheader("Añadir Nuevo Cliente")
             nombre = st.text_input("Nombre completo del cliente:")
-            telefono = st.text_input("Teléfono (Opcional):")
+            telefono = st.text_input("Teléfono (9 dígitos, ej: 650013500):")
             if st.form_submit_button("Guardar Cliente"):
                 if nombre.strip() == "":
                     st.error("El nombre no puede estar vacío.")
                 else:
-                    st.session_state.clientes.append({"nombre": nombre.strip(), "telefono": telefono.strip()})
+                    # Limpiar teléfono y poner el 34 automático si son 9 dígitos
+                    tel_limpio = telefono.strip().replace(" ", "").replace("+", "")
+                    if len(tel_limpio) == 9 and tel_limpio.isdigit():
+                        tel_limpio = f"34{tel_limpio}"
+                    
+                    st.session_state.clientes.append({"nombre": nombre.strip(), "telefono": tel_limpio})
                     st.success(f"Cliente '{nombre}' guardado con éxito.")
                     st.rerun()
         
-        # Eliminar Cliente (NUEVO)
+        # Eliminar Cliente
         if st.session_state.clientes:
             st.write("---")
             st.subheader("🗑️ Eliminar un Cliente")
@@ -126,7 +151,7 @@ else:
                 st.success(f"Categoría '{nombre_cat}' añadida.")
                 st.rerun()
         
-        # Eliminar Categoría (NUEVO)
+        # Eliminar Categoría
         if st.session_state.categorias:
             st.write("---")
             st.subheader("🗑️ Eliminar una Categoría")
