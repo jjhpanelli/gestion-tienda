@@ -10,9 +10,8 @@ st.set_page_config(page_title="Voz - Eloísa Neleb", page_icon="🎙️", layout
 # 🔑 RECOGIDA AUTOMÁTICA DE SECRETS
 # ==========================================
 try:
-    AIRTABLE_TOKEN = st.secrets["patkQeolTgZICdPkp.555b4fbda73bfaf10a9e9f41c3288703e6141d5370697cc27663dc52fc7914aa"]
-
-    AIRTABLE_BASE_ID = st.secrets["appZ19FSlbQduoOp"]
+   AIRTABLE_TOKEN = st.secrets["AIRTABLE_TOKEN"]
+    AIRTABLE_BASE_ID = st.secrets["AIRTABLE_BASE_ID"]
 except:
     st.error("🔑 Configura primero las llaves de Airtable en la sección de Secrets de Streamlit.")
     st.stop()
