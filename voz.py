@@ -7,11 +7,16 @@ import re
 st.set_page_config(page_title="Voz - Eloísa Neleb", page_icon="🎙️", layout="centered")
 
 # ==========================================
-# 🔑 TUS LLAVES DE AIRTABLE
+# 🔑 RECOGIDA AUTOMÁTICA DE SECRETS
 # ==========================================
-AIRTABLE_TOKEN = "patkQeolTgZICdPkp.555b4fbda73bfaf10a9e9f41c3288703e6141d5370697cc27663dc52fc7914aa"
+try:
+    AIRTABLE_TOKEN = st.secrets["patkQeolTgZICdPkp.555b4fbda73bfaf10a9e9f41c3288703e6141d5370697cc27663dc52fc7914aa"]
 
-AIRTABLE_BASE_ID = "appZ19FSlbQduoOp"
+    AIRTABLE_BASE_ID = st.secrets["appZ19FSlbQduoOp"]
+except:
+    st.error("🔑 Configura primero las llaves de Airtable en la sección de Secrets de Streamlit.")
+    st.stop()
+
 AIRTABLE_TABLE_NAME = "Clientes"
 
 headers = {
@@ -20,7 +25,7 @@ headers = {
 }
 
 # Funciones de conexión con Airtable
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=2)
 def obtener_clientes():
     url = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}?sort[0][field]=nombre&sort[0][direction]=asc"
     try:
@@ -34,13 +39,19 @@ def obtener_clientes():
 def agregar_cliente_airtable(nombre, telefono):
     url = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
     datos = {"fields": {"nombre": nombre, "telefono": telefono}}
-    response = requests.post(url, headers=headers, json=datos)
-    return response.status_code == 200
+    try:
+        response = requests.post(url, headers=headers, json=datos)
+        return response.status_code == 200
+    except:
+        return False
 
 def borrar_cliente_airtable(record_id):
     url = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}/{record_id}"
-    response = requests.delete(url, headers=headers)
-    return response.status_code == 200
+    try:
+        response = requests.delete(url, headers=headers)
+        return response.status_code == 200
+    except:
+        return False
 
 def normalizar_numeros_texto(texto):
     numeros_letras = {
@@ -65,17 +76,16 @@ with pestana_ticket:
     st.title("🛍️ Eloísa Neleb Modas")
     st.subheader("Generador de Tickets Inteligente")
     
-    # Lista limpia para el selector
+    # Creamos las opciones del desplegable de forma segura
     opciones_selector = ["Detectar automáticamente por voz"] + [c['nombre'] for c in lista_clientes]
     
-    # Corregido el índice por defecto (index=0) para evitar el cartel rojo de "Choose an option"
     clienta_manual = st.selectbox(
         "Selecciona la clienta (o deja que la IA la busque en tu dictado):", 
-        options=opciones_selector,
-        index=0
+        options=opciones_selector
     )
 
-    texto_venta = st.text_area("Dicta la venta aquí:", placeholder="Ej: Vestido blanco de 10 blusa 7 chaleco 8", height=120)
+    # El cuadro de texto para recibir el dictado o escribir
+    texto_venta = st.text_area("Dicta la venta o escribe aquí:", placeholder="Ej: Vestido blanco de 10 blusa 7 chaleco 8", height=120)
 
     if st.button("Generar Ticket ✨", type="primary"):
         if texto_venta.strip() == "":
@@ -87,14 +97,14 @@ with pestana_ticket:
             cliente_detectado = "Cliente Mostrador"
             telefono_detected = ""
             
-            # Caso A: Si se ha elegido una clienta específica en el menú desplegable
-            if clienta_manual != "Detectar automáticamente por voz":
+            # Caso A: Si seleccionas una de la lista manual
+            if clienta_manual != "Detectar automáticamente por voz" and clienta_manual is not None:
                 cliente_detectado = clienta_manual
                 for c in lista_clientes:
                     if c['nombre'] == clienta_manual:
                         telefono_detected = c['telefono']
                         break
-            # Caso B: Si prefiere que la IA busque el nombre en el dictado de voz
+            # Caso B: Reconocimiento inteligente analizando el texto
             else:
                 for c in lista_clientes:
                     nombre_cli = c['nombre'].lower()
@@ -103,7 +113,7 @@ with pestana_ticket:
                         telefono_detected = c['telefono']
                         break
             
-            # Extraer combinaciones de Prenda + Precio
+            # Procesar prendas y precios
             patron = re.compile(r'([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+)?)\s+(?:de\s+|un\s+|una\s+)?(\d+(?:[\.,]\d+)?)\b')
             coincidencias = patron.findall(frase_limpia)
             
@@ -170,7 +180,7 @@ with pestana_alta:
                     st.cache_data.clear()
                     st.rerun()
                 else:
-                    st.error("Vaya, hubo un problema al conectar con Airtable.")
+                    st.error("Vaya, hubo un problema al conectar con Airtable. Comprueba los Secrets.")
 
 # ==========================================
 # PESTAÑA 3: BORRAR CLIENTAS
@@ -178,7 +188,7 @@ with pestana_alta:
 with pestana_baja:
     st.subheader("🗑️ Eliminar Clienta del Registro")
     if not lista_clientes:
-        st.info("No hay clientas registradas todavía.")
+        st.info("No hay clientas registradas todavía o la aplicación está conectando con Airtable...")
     else:
         st.write("Selecciona una clienta de la lista para borrarla para siempre de Airtable:")
         for cli in lista_clientes:
