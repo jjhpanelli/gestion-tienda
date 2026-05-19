@@ -20,7 +20,7 @@ headers = {
 }
 
 # Funciones de conexión con Airtable
-@st.cache_data(ttl=5) # Cache de 5 segundos para que los cambios se vean casi al instante
+@st.cache_data(ttl=5)
 def obtener_clientes():
     url = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}?sort[0][field]=nombre&sort[0][direction]=asc"
     try:
@@ -65,9 +65,15 @@ with pestana_ticket:
     st.title("🛍️ Eloísa Neleb Modas")
     st.subheader("Generador de Tickets Inteligente")
     
-    # Selector manual de respaldo por si no se quiere dictar el nombre
-    nombres_selector = ["Detectar automáticamente por voz"] + [c['nombre'] for c in lista_clientes]
-    clienta_manual = st.selectbox("Selecciona la clienta (o deja que la IA la busque en tu dictado):", nombres_selector)
+    # Lista limpia para el selector
+    opciones_selector = ["Detectar automáticamente por voz"] + [c['nombre'] for c in lista_clientes]
+    
+    # Corregido el índice por defecto (index=0) para evitar el cartel rojo de "Choose an option"
+    clienta_manual = st.selectbox(
+        "Selecciona la clienta (o deja que la IA la busque en tu dictado):", 
+        options=opciones_selector,
+        index=0
+    )
 
     texto_venta = st.text_area("Dicta la venta aquí:", placeholder="Ej: Vestido blanco de 10 blusa 7 chaleco 8", height=120)
 
@@ -81,14 +87,14 @@ with pestana_ticket:
             cliente_detectado = "Cliente Mostrador"
             telefono_detected = ""
             
-            # Si ha elegido una clienta a mano en el desplegable
+            # Caso A: Si se ha elegido una clienta específica en el menú desplegable
             if clienta_manual != "Detectar automáticamente por voz":
                 cliente_detectado = clienta_manual
                 for c in lista_clientes:
                     if c['nombre'] == clienta_manual:
                         telefono_detected = c['telefono']
                         break
-            # Si prefiere que la IA la busque analizando la voz
+            # Caso B: Si prefiere que la IA busque el nombre en el dictado de voz
             else:
                 for c in lista_clientes:
                     nombre_cli = c['nombre'].lower()
@@ -140,7 +146,7 @@ with pestana_ticket:
                     st.markdown(f'<a href="{url_wa}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366;color:white;border:none;padding:12px 20px;border-radius:5px;cursor:pointer;font-weight:bold;width:100%;margin-top:10px;">💬 Enviar por WhatsApp a {cliente_detectado}</button></a>', unsafe_allow_html=True)
                 else:
                     url_wa_sin = f"https://wa.me/?text={texto_url}"
-                    st.markdown(f'<a href="{url_wa_sin}" target="_blank" style="text-decoration:none;"><button style="background-color:#007bff;color:white;border:none;padding:12px 20px;border-radius:5px;cursor:pointer;font-weight:bold;width:100%;">📲 Compartir en WhatsApp</button></a>', unsafe_allow_html=True)
+                    st.markdown(f'<a href="{url_wa_sin}" target="_blank" style="text-decoration:none;"><button style="background-color:#007bff;color:white;border:none;padding:12px 20px;border-radius:5px;cursor:pointer;font-weight:bold;width:100%;margin-top:10px;">📲 Compartir en WhatsApp</button></a>', unsafe_allow_html=True)
             else:
                 st.error("No he podido extraer las prendas bien. Intenta dictar así: 'vestido 10 blusa 7'")
 
@@ -158,11 +164,11 @@ with pestana_alta:
             if nuevo_nombre.strip() == "" or nuevo_tlf.strip() == "":
                 st.error("Por favor, rellena tanto el nombre como el teléfono.")
             else:
-                # Limpiar el teléfono por si pone espacios
                 tlf_limpio = nuevo_tlf.replace(" ", "").replace("+", "")
                 if agregar_cliente_airtable(nuevo_nombre.strip(), tlf_limpio):
                     st.success(f"¡{nuevo_nombre} se ha guardado correctamente!")
-                    st.cache_data.clear() # Limpiamos memoria para que refresque la lista ya
+                    st.cache_data.clear()
+                    st.rerun()
                 else:
                     st.error("Vaya, hubo un problema al conectar con Airtable.")
 
@@ -180,11 +186,10 @@ with pestana_baja:
             with col1:
                 st.write(f"👤 **{cli['nombre']}** ({cli['telefono']})")
             with col2:
-                # Usamos el ID interno de Airtable para borrar de forma exacta
                 if st.button("Borrar ❌", key=f"del_{cli['id']}"):
                     if borrar_cliente_airtable(cli['id']):
                         st.success(f"Eliminada correctamente.")
-                        st.cache_data.clear() # Forzar recarga de la lista
+                        st.cache_data.clear()
                         st.rerun()
                     else:
                         st.error("No se pudo borrar.")
