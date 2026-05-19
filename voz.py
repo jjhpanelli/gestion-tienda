@@ -1,6 +1,7 @@
 import streamlit as st
 import urllib.parse
 import requests
+import streamlit.components.v1 as components
 
 # Configuración de la pantalla
 st.set_page_config(page_title="Voz - Eloísa Neleb", page_icon="🎙️", layout="centered")
@@ -29,24 +30,98 @@ def obtener_clientes():
         return []
 
 st.title("🛍️ Eloísa Neleb Modas")
-st.subheader("🎙️ Generador de Tickets")
-st.write("Toca el cuadro de abajo, usa el dictado por voz de tu propio móvil o escribe la venta, y genera el ticket al instante.")
+st.subheader("🎙️ Generador de Tickets por Voz")
 
-# Cargar clientes de Airtable
 lista_clientes = obtener_clientes()
 
-# Cuadro de texto limpio y grande de respaldo
-texto_venta = st.text_area("Dicta o escribe la venta aquí:", placeholder="Ej: Venta para Carmen un pantalón de 35 y una blusa de 20", height=120)
+# Inicializar el estado del texto si no existe
+if "texto_voz" not in st.session_state:
+    st.session_state.texto_voz = ""
+
+# 🛠️ COMPONENTE JAVASCRIPT: Activa el dictado oficial de Google/Android directamente
+st.write("Pulsa el botón de abajo para empezar a hablar:")
+componente_html = """
+<div style="text-align: center; margin-bottom: 20px;">
+    <button id="btn-micro" style="background-color: #e74c3c; color: white; border: none; padding: 15px 30px; border-radius: 50px; font-size: 18px; font-weight: bold; cursor: pointer; width: 100%;">
+        🔴 PULSAR PARA HABLAR
+    </button>
+    <p id="estado" style="color: #7f8c8d; font-size: 14px; margin-top: 8px;">Micrófono listo</p>
+</div>
+
+<script>
+    const btn = document.getElementById('btn-micro');
+    const estado = document.getElementById('estado');
+    
+    // Comprobar si el navegador soporta el reconocimiento de voz nativo
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+        estado.innerText = "Tu móvil no soporta este sistema. Usa el teclado.";
+        btn.disabled = true;
+        btn.style.backgroundColor = "#7f8c8d";
+    } else {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'es-ES';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        btn.onclick = function() {
+            try {
+                recognition.start();
+                estado.innerText = "🎙️ Escuchando... Habla ahora";
+                btn.style.backgroundColor = "#2ecc71";
+                btn.innerText = "🟢 ESCUCHANDO...";
+            } catch(e) {
+                // Por si ya estaba iniciado
+            }
+        };
+
+        recognition.onresult = function(event) {
+            const texto = event.results[0][0].transcript;
+            estado.innerText = "✅ Entendido";
+            btn.style.backgroundColor = "#e74c3c";
+            btn.innerText = "🔴 PULSAR PARA HABLAR";
+            
+            # Enviar el texto de vuelta a Streamlit
+            window.parent.postMessage({
+                type: 'streamlit:set_widget_value',
+                from: 'componente_voz',
+                value: texto
+            }, '*');
+            
+            // Forzar actualización mandando un click invisible
+            const inputs = window.parent.document.getElementsByTagName('input');
+            if(inputs.length > 0) { inputs[0].focus(); inputs[0].blur(); }
+        };
+
+        recognition.onerror = function(event) {
+            estado.innerText = "Error o tiempo de espera agotado. Pulsa otra vez.";
+            btn.style.backgroundColor = "#e74c3c";
+            btn.innerText = "🔴 PULSAR PARA HABLAR";
+        };
+        
+        recognition.onend = function() {
+            btn.style.backgroundColor = "#e74c3c";
+            btn.innerText = "🔴 PULSAR PARA HABLAR";
+        };
+    }
+</script>
+"""
+
+# Renderizamos el botón nativo en pantalla
+resultado = components.html(componente_html, height=100)
+
+# Cuadro donde aparecerá automáticamente lo dictado para que lo revises
+texto_final = st.text_input("Texto capturado por voz (puedes corregirlo si hace falta):", key="componente_voz")
 
 if st.button("Generar Ticket ✨", type="primary"):
-    if texto_venta.strip() == "":
-        st.error("¡Primero tienes que introducir los datos de la venta!")
+    if texto_final.strip() == "":
+        st.error("¡Primero tienes que pulsar el botón rojo y hablar!")
     else:
-        frase = texto_venta.lower()
+        frase = texto_final.lower()
         cliente_detectado = "Cliente Mostrador"
         telefono_detected = ""
         
-        # Buscar cliente en la base de datos
         for c in lista_clientes:
             nombre_cli = c['nombre'].lower()
             if nombre_cli in frase or (nombre_cli.split() and nombre_cli.split()[0] in frase):
@@ -54,7 +129,6 @@ if st.button("Generar Ticket ✨", type="primary"):
                 telefono_detected = c['telefono']
                 break
         
-        # Extraer precios
         palabras = frase.split()
         numeros = []
         for p in palabras:
@@ -75,9 +149,9 @@ if st.button("Generar Ticket ✨", type="primary"):
             texto_url = urllib.parse.quote(ticket)
             if telefono_detected:
                 url_wa = f"https://wa.me/{telefono_detected}?text={texto_url}"
-                st.markdown(f'<a href="{url_wa}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366;color:white;border:none;padding:12px 20px;border-radius:5px;cursor:pointer;font-weight:bold;width:100%;margin-top:10px;">💬 Enviar por WhatsApp a {cliente_detectado}</button></a>', unsafe_allow_html=True)
+                st.markdown(f'<a href="{url_wa}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366;color:white;border:none;padding:12px 20px;border-radius:5px;cursor:pointer;font-weight:bold;width:100%;">💬 Enviar por WhatsApp a {cliente_detectado}</button></a>', unsafe_allow_html=True)
             else:
                 url_wa_sin = f"https://wa.me/?text={texto_url}"
-                st.markdown(f'<a href="{url_wa_sin}" target="_blank" style="text-decoration:none;"><button style="background-color:#007bff;color:white;border:none;padding:12px 20px;border-radius:5px;cursor:pointer;font-weight:bold;width:100%;margin-top:10px;">📲 Compartir en WhatsApp</button></a>', unsafe_allow_html=True)
+                st.markdown(f'<a href="{url_wa_sin}" target="_blank" style="text-decoration:none;"><button style="background-color:#007bff;color:white;border:none;padding:12px 20px;border-radius:5px;cursor:pointer;font-weight:bold;width:100%;">📲 Compartir en WhatsApp</button></a>', unsafe_allow_html=True)
         else:
-            st.error("No he detectado precios numéricos. Recuerda incluir los precios de las prendas.")
+            st.error("No he detectado precios numéricos en la frase.")
