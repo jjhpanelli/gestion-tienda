@@ -10,7 +10,7 @@ st.set_page_config(page_title="Voz - Eloísa Neleb", page_icon="🎙️", layout
 # 🔑 RECOGIDA AUTOMÁTICA DE SECRETS
 # ==========================================
 try:
-   AIRTABLE_TOKEN = st.secrets["AIRTABLE_TOKEN"]
+    AIRTABLE_TOKEN = st.secrets["AIRTABLE_TOKEN"]
     AIRTABLE_BASE_ID = st.secrets["AIRTABLE_BASE_ID"]
 except:
     st.error("🔑 Configura primero las llaves de Airtable en la sección de Secrets de Streamlit.")
@@ -75,7 +75,6 @@ with pestana_ticket:
     st.title("🛍️ Eloísa Neleb Modas")
     st.subheader("Generador de Tickets Inteligente")
     
-    # Creamos las opciones del desplegable de forma segura
     opciones_selector = ["Detectar automáticamente por voz"] + [c['nombre'] for c in lista_clientes]
     
     clienta_manual = st.selectbox(
@@ -83,7 +82,6 @@ with pestana_ticket:
         options=opciones_selector
     )
 
-    # El cuadro de texto para recibir el dictado o escribir
     texto_venta = st.text_area("Dicta la venta o escribe aquí:", placeholder="Ej: Vestido blanco de 10 blusa 7 chaleco 8", height=120)
 
     if st.button("Generar Ticket ✨", type="primary"):
@@ -96,14 +94,12 @@ with pestana_ticket:
             cliente_detectado = "Cliente Mostrador"
             telefono_detected = ""
             
-            # Caso A: Si seleccionas una de la lista manual
             if clienta_manual != "Detectar automáticamente por voz" and clienta_manual is not None:
                 cliente_detectado = clienta_manual
                 for c in lista_clientes:
                     if c['nombre'] == clienta_manual:
                         telefono_detected = c['telefono']
                         break
-            # Caso B: Reconocimiento inteligente analizando el texto
             else:
                 for c in lista_clientes:
                     nombre_cli = c['nombre'].lower()
@@ -112,7 +108,6 @@ with pestana_ticket:
                         telefono_detected = c['telefono']
                         break
             
-            # Procesar prendas y precios
             patron = re.compile(r'([a-záéíóúñ]+(?:\s+[a-záéíóúñ]+)?)\s+(?:de\s+|un\s+|una\s+)?(\d+(?:[\.,]\d+)?)\b')
             coincidencias = patron.findall(frase_limpia)
             
