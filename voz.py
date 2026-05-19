@@ -10,8 +10,8 @@ st.set_page_config(page_title="Voz - Eloísa Neleb", page_icon="🎙️", layout
 # ==========================================
 AIRTABLE_TOKEN = "patkQeolTgZICdPkp.555b4fbda73bfaf10a9e9f41c3288703e6141d5370697cc27663dc52fc7914aa"
 
-AIRTABLE_BASE_ID = "appZ19FSlbQduoOp
-"
+AIRTABLE_BASE_ID = "appZ19FSlbQduoOp"
+
 AIRTABLE_TABLE_NAME = "Clientes"
 
 headers = {
