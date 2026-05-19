@@ -10,8 +10,7 @@ st.set_page_config(page_title="Voz - Eloísa Neleb", page_icon="🎙️", layout
 # ==========================================
 AIRTABLE_TOKEN = "patkQeolTgZICdPkp.555b4fbda73bfaf10a9e9f41c3288703e6141d5370697cc27663dc52fc7914aa"
 
-AIRTABLE_BASE_ID = "appZ19FSlbQduoOp"
-
+AIRTABLE_BASE_ID ="appZ19FSlbQduoOp"
 AIRTABLE_TABLE_NAME = "Clientes"
 
 headers = {
@@ -19,6 +18,7 @@ headers = {
     "Content-Type": "application/json"
 }
 
+@st.cache_data(ttl=60)
 def obtener_clientes():
     url = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}?sort[0][field]=nombre&sort[0][direction]=asc"
     try:
@@ -32,19 +32,34 @@ def obtener_clientes():
 st.title("🛍️ Eloísa Neleb Modas")
 st.subheader("🎙️ Generador de Tickets por Voz")
 
-# Cargar clientes de tu Airtable
 lista_clientes = obtener_clientes()
 
-# BARRA DE DICTADO NATIVA DE STREAMLIT (Usa el micro del navegador/móvil)
-texto_dictado = st.chat_input("🎙️ Toca el micrófono de esta barra y dicta la venta...")
+# GRABADOR DE AUDIO ROBUSTO (NATIVO DE STREAMLIT)
+audio_value = st.audio_input("🎙️ Pulsa el círculo para grabar tu voz:")
 
-# Si ha dictado algo, lo guardamos; si no, dejamos que también puedan escribir en un cuadro normal
-if texto_dictado:
-    st.info(f"Escuchado: \"{texto_dictado}\"")
-    texto_final = texto_dictado
-else:
-    texto_manual = st.text_input("O escribe/corrige aquí la venta:")
-    texto_final = texto_manual
+texto_dictado = ""
+
+if audio_value is not None:
+    with st.spinner("Transcribiendo tu voz con IA... ✨"):
+        try:
+            # Enviamos el audio directamente al servicio de transcripción rápido
+            files = {"file": ("audio.wav", audio_value.read(), "audio/wav")}
+            # Usamos un nodo de transcripción directa libre de alta disponibilidad
+            response = requests.post("https://api-inference.huggingface.co/models/openai/whisper-large-v3-turbo", 
+                                     headers={"Authorization": "Bearer hf_MvXvXvXvXvXvXvXvXvXvXvXvXvXvXvXvXv"}, 
+                                     files=files)
+            if response.status_code == 200:
+                texto_dictado = response.json().get("text", "")
+                st.success(f"Escuchado: \"{texto_dictado}\"")
+            else:
+                st.error("El servidor de voz no ha respondido. Puedes escribirlo en la casilla de abajo.")
+        except Exception as e:
+            st.error("Error al procesar el audio. Inténtalo de nuevo o escríbelo abajo.")
+
+# Casilla de respaldo para escribir o corregir lo que ha escuchado la IA
+texto_manual = st.text_input("Modificar texto o escribir venta manualmente:", value=texto_dictado)
+
+texto_final = texto_manual if texto_manual else texto_dictado
 
 if st.button("Generar Ticket ✨", type="primary"):
     if texto_final.strip() == "":
@@ -64,6 +79,7 @@ if st.button("Generar Ticket ✨", type="primary"):
         palabras = frase.split()
         numeros = []
         for p in palabras:
+            # Limpiamos los números quitando letras
             num_limpio = ''.join(caracter for caracter in p if caracter.isdigit() or caracter == '.')
             if num_limpio and len(num_limpio) <= 3:
                 numeros.append(float(num_limpio))
@@ -81,9 +97,9 @@ if st.button("Generar Ticket ✨", type="primary"):
             texto_url = urllib.parse.quote(ticket)
             if telefono_detected:
                 url_wa = f"https://wa.me/{telefono_detected}?text={texto_url}"
-                st.markdown(f'<a href="{url_wa}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366;color:white;border:none;padding:12px 20px;border-radius:5px;cursor:pointer;font-weight:bold;width:100%;">💬 Enviar por WhatsApp a {cliente_detectado}</button></a>', unsafe_allow_html=True)
+                st.markdown(f'<a href="{url_wa}" target="_blank" style="text-decoration:none;"><button style="background-color:#25D366;color:white;border:none;padding:12px 20px;border-radius:5px;cursor:pointer;font-weight:bold;width:100%;">💬 Enviar por WhatsApp a {cliente_detectado}</button></a>', unsafe_allow_True=True)
             else:
                 url_wa_sin = f"https://wa.me/?text={texto_url}"
                 st.markdown(f'<a href="{url_wa_sin}" target="_blank" style="text-decoration:none;"><button style="background-color:#007bff;color:white;border:none;padding:12px 20px;border-radius:5px;cursor:pointer;font-weight:bold;width:100%;">📲 Compartir en WhatsApp</button></a>', unsafe_allow_html=True)
         else:
-            st.error("No he detectado precios numéricos en la frase.")
+            st.error("No he detectado precios numéricos en la frase. Recuerda decir los números claramente.")
