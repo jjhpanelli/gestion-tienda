@@ -56,13 +56,18 @@ def borrar_categoria_airtable(record_id):
         return False
 
 def obtener_clientes_airtable():
-    url = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_CLIENTES}"
+    url = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_CLIENTES}?sort[0][field]=nombre&sort[0][direction]=asc"
     headers = {"Authorization": f"Bearer {AIRTABLE_TOKEN}"}
     try:
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             registros = response.json().get("records", [])
-            lista = [{"nombre": r["fields"].get("nombre"), "telefono": r["fields"].get("telefono")} for r in registros if r["fields"].get("nombre")]
+            # IMPORTANTE: Ahora sí recogemos el "id" de cada registro para poder borrarlo luego
+            lista = [{
+                "id": r["id"], 
+                "nombre": r["fields"].get("nombre"), 
+                "telefono": r["fields"].get("telefono")
+            } for r in registros if r["fields"].get("nombre")]
             return lista
         return []
     except:
@@ -74,6 +79,15 @@ def guardar_cliente_airtable(nombre, telefono):
     data = {"records": [{"fields": {"nombre": nombre, "telefono": telefono}}]}
     try:
         res = requests.post(url, headers=headers, json=data)
+        return res.status_code == 200
+    except:
+        return False
+
+def borrar_cliente_airtable(record_id):
+    url = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_CLIENTES}/{record_id}"
+    headers = {"Authorization": f"Bearer {AIRTABLE_TOKEN}"}
+    try:
+        res = requests.delete(url, headers=headers)
         return res.status_code == 200
     except:
         return False
@@ -93,7 +107,7 @@ if st.session_state.autenticado:
     nombres_categorias = [c["nombre"] for c in categorias_data] if categorias_data else ["General"]
     clientes_data = obtener_clientes_airtable()
     
-    pestana_ventas, pestana_clientes, pestana_cats = st.tabs(["💰 Crear Venta", "👤 Registrar Clienta", "⚙️ Ajustes Categorías"])
+    pestana_ventas, pestana_clientes, pestana_cats = st.tabs(["💰 Crear Venta", "👤 Registrar/Borrar Clienta", "⚙️ Ajustes Categorías"])
     
     # --- PESTAÑA 1: CREAR VENTA ---
     with pestana_ventas:
@@ -175,7 +189,7 @@ if st.session_state.autenticado:
                     mensaje_completo += f"▪️ *{item['prenda']}*"
                     if item['detalles']:
                         mensaje_completo += f" _{item['detalles']}_"
-                    mensaje_completo += f"  ➔  *{item['precio']:.2f}€*\n"
+                    mensaje_completo += f"   ➔   *{item['precio']:.2f}€*\n"
                     
                 mensaje_completo += (
                     f"🔹──────────────────🔹\n\n"
@@ -200,7 +214,7 @@ if st.session_state.autenticado:
         else:
             st.info("El ticket está vacío. Añade alguna prenda arriba.")
 
-    # --- PESTAÑA 2: REGISTRAR CLIENTA ---
+    # --- PESTAÑA 2: REGISTRAR Y BORRAR CLIENTA ---
     with pestana_clientes:
         st.subheader("Registrar Nueva Clienta en Airtable")
         with st.form("nuevo_cliente", clear_on_submit=True):
@@ -217,6 +231,26 @@ if st.session_state.autenticado:
                         st.error("Error al guardar cliente.")
                 else:
                     st.warning("Por favor, rellena ambos campos.")
+                    
+        st.write("---")
+        st.subheader("🗑️ Eliminar Clienta del Registro")
+        
+        if clientes_data:
+            # Creamos una lista limpia con los nombres de las clientas para el selector de borrado
+            nombres_borrar = [c["nombre"] for c in clientes_data]
+            clienta_a_borrar = st.selectbox("Selecciona la clienta que deseas eliminar de la base de datos:", nombres_borrar, key="sel_borrar_cli")
+            
+            if st.button("❌ Eliminar Clienta Seleccionada", type="secondary"):
+                # Buscamos el ID interno de Airtable que corresponde al nombre seleccionado
+                id_cliente_airtable = next((c["id"] for c in clientes_data if c["nombre"] == clienta_a_borrar), None)
+                if id_cliente_airtable:
+                    if borrar_cliente_airtable(id_cliente_airtable):
+                        st.success(f"¡{clienta_a_borrar} ha sido eliminada de Airtable con éxito!")
+                        st.rerun()
+                    else:
+                        st.error("No se pudo eliminar de Airtable. Revisa la conexión.")
+        else:
+            st.info("No hay clientas registradas que se puedan borrar.")
 
     # --- PESTAÑA 3: GESTIONAR CATEGORÍAS ---
     with pestana_cats:
