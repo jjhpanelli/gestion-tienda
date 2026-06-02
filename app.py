@@ -56,22 +56,17 @@ def borrar_categoria_airtable(record_id):
         return False
 
 def obtener_clientes_airtable():
-    url = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_CLIENTES}?sort[0][field]=nombre&sort[0][direction]=asc"
-    headers = {"Authorization": f"Bearer {AIRTABLE_TOKEN}"}
-    try:
-        response = requests.get(url, headers=headers)
-        if response.status_code == 200:
-            registros = response.json().get("records", [])
-            # IMPORTANTE: Ahora sí recogemos el "id" de cada registro para poder borrarlo luego
-            lista = [{
-                "id": r["id"], 
-                "nombre": r["fields"].get("nombre"), 
-                "telefono": r["fields"].get("telefono")
-            } for r in registros if r["fields"].get("nombre")]
-            return lista
-        return []
-    except:
-        return []
+    url = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_CLIENTES}"
+    headers = {"Authorization": f"Bearer {AIRTABLE_TOKEN}"}
+    try:
+        response = requests.get(url, headers=headers)
+        if response.status_code == 200:
+            registros = response.json().get("records", [])
+            lista = [{"nombre": r["fields"].get("nombre"), "telefono": r["fields"].get("telefono")} for r in registros if r["fields"].get("nombre")]
+            return lista
+        return []
+    except:
+        return []
 
 def guardar_cliente_airtable(nombre, telefono):
     url = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_CLIENTES}"
