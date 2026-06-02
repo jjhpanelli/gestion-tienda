@@ -115,7 +115,7 @@ def guardar_venta_airtable(clienta, detalles, total):
                 "fecha": fecha_hoy,
                 "clienta": str(clienta),
                 "detalles": str(detalles),
-                "total": float(total)
+                "total": str(total)
             }
         }]
     }
