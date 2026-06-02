@@ -298,7 +298,13 @@ if st.session_state.autenticado:
         st.subheader("📊 Panel de Ventas e Historial")
         ventas_data = obtener_ventas_airtable()
         if ventas_data:
-            total_caja = sum(v["fields"].get("total", 0.0) for v in ventas_data)
+            total_caja = 0.0
+            for v in ventas_data:
+                try:
+                    total_caja += float(v["fields"].get("total", 0.0))
+                except:
+                    pass
+            
             col_est1, col_est2 = st.columns(2)
             col_est1.metric("💰 Facturación Total", f"{total_caja:.2f} €")
             col_est2.metric("🛍️ Total Ventas", f"{len(ventas_data)} tickets")
@@ -306,7 +312,7 @@ if st.session_state.autenticado:
             st.write("---")
             for v in ventas_data:
                 f = v["fields"]
-                with st.expander(f"📅 {f.get('fecha','-')} | 👤 {f.get('clienta','-')} | 💵 {f.get('total',0.0):.2f}€"):
+                with st.expander(f"📅 {f.get('fecha','-')} | 👤 {f.get('clienta','-')} | 💵 {f.get('total',0.0)}€"):
                     st.text(f.get("detalles", "Sin detalles"))
             
             st.write("---")
