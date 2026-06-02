@@ -138,13 +138,11 @@ def obtener_ventas_airtable():
 
 def vaciar_ventas_airtable():
     headers = {"Authorization": f"Bearer {AIRTABLE_TOKEN}"}
+    url_get = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_VENTAS}"
     try:
-        url_get = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_VENTAS}?fields[]="
         res_get = requests.get(url_get, headers=headers)
         if res_get.status_code == 200:
             registros = res_get.json().get("records", [])
-            if not registros:
-                return True
             for r in registros:
                 requests.delete(f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_VENTAS}/{r['id']}", headers=headers)
             return True
