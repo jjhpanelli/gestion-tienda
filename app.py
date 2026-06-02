@@ -56,7 +56,7 @@ def borrar_categoria_airtable(record_id):
         return False
 
 def obtener_clientes_airtable():
-    url = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_CLIENTES}"
+    url = f"https://api.airtable.com/v0/{BASE_ID}/{TABLE_CLIENTES}"
     headers = {"Authorization": f"Bearer {AIRTABLE_TOKEN}"}
     try:
         response = requests.get(url, headers=headers)
